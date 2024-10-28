@@ -98,7 +98,7 @@ def generate_insights(df):
     """Generate key insights from the processed data"""
     total_impact = df['Impact in Euros'].sum()
     total_po_value = df['Open PO Value'].sum()
-    distinct_parts_count = processed_df['PART_NUMBER'].nunique() 
+    distinct_parts_count = df['PART_NUMBER'].nunique() 
     total_parts = len(df)
     unique_vendors = df['VENDOR_NAME'].nunique()
     
@@ -206,10 +206,7 @@ def main():
             
             if processed_df is not None and not processed_df.empty:
                 # Generate insights
-                insights = generate_insights(processed_df)
-                distinct_parts_count = processed_df['PART_NUMBER'].nunique()  # Assuming PART_NUMBER represents parts
-                distinct_vendors_count = processed_df['VENDOR_NUM'].nunique()  # Assuming VENDOR_NUM represents vendors
-                
+                insights = generate_insights(processed_df)                
                 # Display metrics
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:

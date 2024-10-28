@@ -116,7 +116,7 @@ def generate_insights(df):
     return {
         'total_impact': total_impact,
         'total_po_value': total_po_value,
-        'total_Unique_parts': distinct_parts_count,
+        'distinct_parts_count': distinct_parts_count,
         'unique_vendors': unique_vendors,
         'impact_by_vendor': impact_by_vendor,
         'impact_by_category': impact_by_category
@@ -200,7 +200,7 @@ def main():
             # Read files
             open_po_df = pd.read_excel(
                 open_po_file,
-                usecols=['ORDER_TYPE', 'LINE_TYPE', 'ITEM', 'VENDOR_NUM', 'PO_NUM', 'RELEASE_NUM', 
+                usecols=['     ORDER_TYPE', 'LINE_TYPE', 'ITEM', 'VENDOR_NUM', 'PO_NUM', 'RELEASE_NUM', 
                         'LINE_NUM', 'SHIPMENT_NUM', 'AUTHORIZATION_STATUS', 'PO_SHIPMENT_CREATION_DATE',
                         'QTY_ELIGIBLE_TO_SHIP', 'UNIT_PRICE', 'CURRNECY']
             )
@@ -228,7 +228,7 @@ def main():
                     with col2:
                         st.metric("Total Open PO Value (EUR)", f"{insights['total_po_value']:,.2f}")
                     with col3:
-                        st.metric("Number of Parts", insights['total_Unique_parts'])
+                        st.metric("Number of Parts", insights['distinct_parts_count'])
                     with col4:
                         st.metric("Number of Vendors", insights['unique_vendors'])
 

@@ -98,6 +98,7 @@ def generate_insights(df):
     """Generate key insights from the processed data"""
     total_impact = df['Impact in Euros'].sum()
     total_po_value = df['Open PO Value'].sum()
+    distinct_parts_count = processed_df['PART_NUMBER'].nunique() 
     total_parts = len(df)
     unique_vendors = df['VENDOR_NAME'].nunique()
     
@@ -108,7 +109,7 @@ def generate_insights(df):
     return {
         'total_impact': total_impact,
         'total_po_value': total_po_value,
-        'total_parts': total_parts,
+        'total_Unique_parts': distinct_parts_count,
         'unique_vendors': unique_vendors,
         'impact_by_vendor': impact_by_vendor,
         'impact_by_category': impact_by_category
@@ -206,6 +207,8 @@ def main():
             if processed_df is not None and not processed_df.empty:
                 # Generate insights
                 insights = generate_insights(processed_df)
+                distinct_parts_count = processed_df['PART_NUMBER'].nunique()  # Assuming PART_NUMBER represents parts
+                distinct_vendors_count = processed_df['VENDOR_NUM'].nunique()  # Assuming VENDOR_NUM represents vendors
                 
                 # Display metrics
                 col1, col2, col3, col4 = st.columns(4)
@@ -214,7 +217,7 @@ def main():
                 with col2:
                     st.metric("Total Open PO Value (EUR)", f"{insights['total_po_value']:,.2f}")
                 with col3:
-                    st.metric("Number of Parts", insights['total_parts'])
+                    st.metric("Number of Parts", insights['distinct_parts_count'])
                 with col4:
                     st.metric("Number of Vendors", insights['unique_vendors'])
 

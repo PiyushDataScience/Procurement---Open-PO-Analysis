@@ -35,13 +35,21 @@ def convert_to_euro(price, currency):
     """Converts a price to Euros based on the provided currency."""
     if currency in CONVERSION_RATES:
         return price * CONVERSION_RATES[currency]
-    return None
+    return price  # Return original price if currency not found instead of None
 
 def process_data(open_po_df, workbench_df):
     """Process the input dataframes according to business logic"""
     try:
         # Filter Open PO for LINE_TYPE = Inventory
         open_po_df = open_po_df[open_po_df['LINE_TYPE'] == 'Inventory']
+        
+        # Clean up column names before merge
+        open_po_df.columns = open_po_df.columns.str.strip()
+        workbench_df.columns = workbench_df.columns.str.strip()
+        
+        # Rename UNIT_PRICE columns before merge to avoid confusion
+        open_po_df = open_po_df.rename(columns={'UNIT_PRICE': 'UNIT_PRICE_OPO'})
+        workbench_df = workbench_df.rename(columns={'UNIT_PRICE': 'UNIT_PRICE_WB'})
         
         # Merge dataframes
         merged_df = pd.merge(
@@ -52,17 +60,14 @@ def process_data(open_po_df, workbench_df):
             how='inner'
         )
         
-        # Clean up column names
-        merged_df.columns = merged_df.columns.str.strip()
+        # Drop redundant column
         merged_df = merged_df.drop('ITEM', axis=1)
         
         # Rename columns
         merged_df = merged_df.rename(columns={
             'DANDB': 'VENDOR_DUNS',
-            'UNIT_PRICE_x': 'Unit_Price_WB',
             'CURRENCY_CODE': 'CURRENCY_CODE_WB',
-            'UNIT_PRICE_y': 'UNIT_PRICE_OPO',
-            'CURRNECY': 'CURRNECY_OPO'
+            'CURRNECY': 'CURRENCY_CODE_OPO'  # Fixed typo in CURRENCY
         })
         
         # Add IG/OG classification
@@ -75,10 +80,10 @@ def process_data(open_po_df, workbench_df):
         
         # Convert prices to EUR
         merged_df['UNIT_PRICE_WB_EUR'] = merged_df.apply(
-            lambda row: convert_to_euro(row['Unit_Price_WB'], row['CURRENCY_CODE_WB']), axis=1
+            lambda row: convert_to_euro(row['UNIT_PRICE_WB'], row['CURRENCY_CODE_WB']), axis=1
         )
         merged_df['UNIT_PRICE_OPO_EUR'] = merged_df.apply(
-            lambda row: convert_to_euro(row['UNIT_PRICE_OPO'], row['CURRNECY_OPO']), axis=1
+            lambda row: convert_to_euro(row['UNIT_PRICE_OPO'], row['CURRENCY_CODE_OPO']), axis=1
         )
         
         # Calculate metrics
@@ -96,10 +101,12 @@ def process_data(open_po_df, workbench_df):
 
 def generate_insights(df):
     """Generate key insights from the processed data"""
+    if df is None or df.empty:
+        return None
+        
     total_impact = df['Impact in Euros'].sum()
     total_po_value = df['Open PO Value'].sum()
     distinct_parts_count = df['PART_NUMBER'].nunique() 
-    total_parts = len(df)
     unique_vendors = df['VENDOR_NAME'].nunique()
     
     # Group by analyses
@@ -117,6 +124,9 @@ def generate_insights(df):
 
 def create_visualizations(df):
     """Create visualizations using Plotly"""
+    if df is None or df.empty:
+        return None
+        
     # Impact by Category
     category_fig = px.bar(
         df.groupby('STARS Category Code')['Impact in Euros'].sum().sort_values(ascending=False).head(10).reset_index(),
@@ -156,6 +166,8 @@ def create_visualizations(df):
 
 def get_download_link(df, filename="processed_data.csv"):
     """Generate a download link for the processed data"""
+    if df is None or df.empty:
+        return ""
     csv = df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download {filename}</a>'
@@ -188,7 +200,7 @@ def main():
             # Read files
             open_po_df = pd.read_excel(
                 open_po_file,
-                usecols=['     ORDER_TYPE', 'LINE_TYPE', 'ITEM', 'VENDOR_NUM', 'PO_NUM', 'RELEASE_NUM', 
+                usecols=['ORDER_TYPE', 'LINE_TYPE', 'ITEM', 'VENDOR_NUM', 'PO_NUM', 'RELEASE_NUM', 
                         'LINE_NUM', 'SHIPMENT_NUM', 'AUTHORIZATION_STATUS', 'PO_SHIPMENT_CREATION_DATE',
                         'QTY_ELIGIBLE_TO_SHIP', 'UNIT_PRICE', 'CURRNECY']
             )
@@ -206,52 +218,53 @@ def main():
             
             if processed_df is not None and not processed_df.empty:
                 # Generate insights
-                insights = generate_insights(processed_df)                
-                # Display metrics
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Total Price Impact (EUR)", f"{insights['total_impact']:,.2f}")
-                with col2:
-                    st.metric("Total Open PO Value (EUR)", f"{insights['total_po_value']:,.2f}")
-                with col3:
-                    st.metric("Number of Parts", insights['distinct_parts_count'])
-                with col4:
-                    st.metric("Number of Vendors", insights['unique_vendors'])
-
-                # Create tabs
-                tab1, tab2, tab3 = st.tabs(["Visualizations", "Data Table", "Top Impact Analysis"])
-
-                with tab1:
-                    figures = create_visualizations(processed_df)
-                    
-                    # Display visualizations in a grid
-                    col1, col2 = st.columns(2)
+                insights = generate_insights(processed_df)
+                
+                if insights:
+                    # Display metrics
+                    col1, col2, col3, col4 = st.columns(4)
                     with col1:
-                        st.plotly_chart(figures[0], use_container_width=True)
-                        st.plotly_chart(figures[2], use_container_width=True)
+                        st.metric("Total Price Impact (EUR)", f"{insights['total_impact']:,.2f}")
                     with col2:
-                        st.plotly_chart(figures[1], use_container_width=True)
-                        st.plotly_chart(figures[3], use_container_width=True)
+                        st.metric("Total Open PO Value (EUR)", f"{insights['total_po_value']:,.2f}")
+                    with col3:
+                        st.metric("Number of Parts", insights['total_Unique_parts'])
+                    with col4:
+                        st.metric("Number of Vendors", insights['unique_vendors'])
 
-                with tab2:
-                    st.dataframe(processed_df)
-                    st.markdown(get_download_link(processed_df), unsafe_allow_html=True)
+                    # Create tabs
+                    tab1, tab2, tab3 = st.tabs(["Visualizations", "Data Table", "Top Impact Analysis"])
 
-                with tab3:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.subheader("Top Vendors by Price Impact")
-                        st.table(pd.DataFrame({
-                            'Vendor': insights['impact_by_vendor'].index,
-                            'Impact (EUR)': insights['impact_by_vendor'].values.round(2)
-                        }))
-                    
-                    with col2:
-                        st.subheader("Top Categories by Price Impact")
-                        st.table(pd.DataFrame({
-                            'Category': insights['impact_by_category'].index,
-                            'Impact (EUR)': insights['impact_by_category'].values.round(2)
-                        }))
+                    with tab1:
+                        figures = create_visualizations(processed_df)
+                        if figures:
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.plotly_chart(figures[0], use_container_width=True)
+                                st.plotly_chart(figures[2], use_container_width=True)
+                            with col2:
+                                st.plotly_chart(figures[1], use_container_width=True)
+                                st.plotly_chart(figures[3], use_container_width=True)
+
+                    with tab2:
+                        st.dataframe(processed_df)
+                        st.markdown(get_download_link(processed_df), unsafe_allow_html=True)
+
+                    with tab3:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.subheader("Top Vendors by Price Impact")
+                            st.table(pd.DataFrame({
+                                'Vendor': insights['impact_by_vendor'].index,
+                                'Impact (EUR)': insights['impact_by_vendor'].values.round(2)
+                            }))
+                        
+                        with col2:
+                            st.subheader("Top Categories by Price Impact")
+                            st.table(pd.DataFrame({
+                                'Category': insights['impact_by_category'].index,
+                                'Impact (EUR)': insights['impact_by_category'].values.round(2)
+                            }))
 
             else:
                 st.warning("No data matches the analysis criteria.")

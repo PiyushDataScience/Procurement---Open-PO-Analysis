@@ -119,7 +119,7 @@ def create_visualizations(df):
     """Create visualizations using Plotly"""
     # Impact by Category
     category_fig = px.bar(
-        df.groupby('STARS Category Code')['Impact in Euros'].sum().reset_index(),
+        df.groupby('STARS Category Code')['Impact in Euros'].sum().sort_values(ascending=False).head(10).reset_index(),
         x='Impact in Euros',
         y='STARS Category Code',
         title='Price Impact by Category (EUR)',
@@ -170,7 +170,7 @@ def main():
     
     load_css()
 
-    st.title("Open PO Analysis Tool")
+    st.title("Open PO Analysis")
     st.markdown("""
     This tool analyzes Open PO data against Workbench data to identify price variations and potential savings opportunities.
     Please upload both required files to begin the analysis.

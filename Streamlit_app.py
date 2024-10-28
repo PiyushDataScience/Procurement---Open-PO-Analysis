@@ -187,7 +187,7 @@ def main():
             # Read files
             open_po_df = pd.read_excel(
                 open_po_file,
-                usecols=['ORDER_TYPE', 'LINE_TYPE', 'ITEM', 'VENDOR_NUM', 'PO_NUM', 'RELEASE_NUM', 
+                usecols=['     ORDER_TYPE', 'LINE_TYPE', 'ITEM', 'VENDOR_NUM', 'PO_NUM', 'RELEASE_NUM', 
                         'LINE_NUM', 'SHIPMENT_NUM', 'AUTHORIZATION_STATUS', 'PO_SHIPMENT_CREATION_DATE',
                         'QTY_ELIGIBLE_TO_SHIP', 'UNIT_PRICE', 'CURRNECY']
             )
